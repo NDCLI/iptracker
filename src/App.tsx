@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Activity, ShieldCheck, AlertCircle, Globe, Monitor, Clock, RefreshCw } from 'lucide-react';
+import { Activity, ShieldCheck, AlertCircle, Globe, Monitor, Clock, RefreshCw, Copy, Check } from 'lucide-react';
 
 interface Visitor {
   ip: string;
@@ -17,6 +17,7 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [copiedIp, setCopiedIp] = useState<string | null>(null);
 
   const fetchVisitors = useCallback(async (isBackground = false) => {
     if (!isBackground) setLoading(true);
@@ -52,8 +53,26 @@ export default function App() {
     return () => clearInterval(intervalId);
   }, [fetchVisitors]);
 
+  const copyToClipboard = async (ip: string) => {
+    try {
+      await navigator.clipboard.writeText(ip);
+      setCopiedIp(ip);
+      setTimeout(() => setCopiedIp(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy IP', err);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans text-gray-900">
+    <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans text-gray-900 relative">
+      {/* Toast Notification */}
+      <div 
+        className={`fixed top-6 right-6 bg-gray-900 text-white px-4 py-3 rounded-lg shadow-lg flex items-center transition-all duration-300 z-50 ${copiedIp ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'}`}
+      >
+        <Check className="w-5 h-5 mr-2 text-green-400" />
+        <span className="font-medium">Copied {copiedIp} to clipboard!</span>
+      </div>
+
       <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
         <div className="bg-blue-600 p-8 text-white">
           <div className="flex items-center gap-4 mb-2">
@@ -142,9 +161,14 @@ export default function App() {
                   {visitors.map((visitor, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-4">
-                        <span className="font-mono text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                        <button
+                          onClick={() => copyToClipboard(visitor.ip)}
+                          className="group flex items-center gap-2 font-mono text-gray-700 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 px-2.5 py-1.5 rounded transition-colors"
+                          title="Click to copy IP"
+                        >
                           {visitor.ip}
-                        </span>
+                          <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                        </button>
                       </td>
                       <td className="py-4 px-4 text-gray-600 flex items-center">
                         <Globe className="w-4 h-4 mr-2 text-gray-400" />
@@ -171,3 +195,4 @@ export default function App() {
     </div>
   );
 }
+
