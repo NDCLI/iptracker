@@ -1,0 +1,6 @@
+{
+  "name": "PostHog IP Tracker",
+  "description": "A web application that captures and tracks visitor IP addresses using PostHog API.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
