@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "Visitor": {
+      "title": "Visitor",
+      "description": "Information about a visitor tracking their IP",
+      "type": "object",
+      "properties": {
+        "ip": { "type": "string", "description": "The IPv4 address of the visitor" },
+        "city": { "type": "string", "description": "The city of the visitor" },
+        "country": { "type": "string", "description": "The country of the visitor" },
+        "os": { "type": "string", "description": "The operating system of the visitor" },
+        "browser": { "type": "string", "description": "The browser of the visitor" },
+        "lastSeen": { "type": "string", "description": "The ISO timestamp of the last visit" }
+      },
+      "required": ["ip", "lastSeen"]
+    }
+  },
+  "firestore": {
+    "/visitors/{ip}": {
+      "schema": "Visitor",
+      "description": "Stored visitor IP details indexed by IP address"
+    }
+  }
+}
