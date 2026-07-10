@@ -108,6 +108,7 @@ export default async function handler(req: any, res: any) {
     );
     return res.json({
       visitors: savedVisitors,
+      recentEvents: savedVisitors,
       warning:
         "Missing POSTHOG_PERSONAL_API_KEY or POSTHOG_PROJECT_ID env variables. Showing cached history.",
     });
@@ -138,6 +139,7 @@ export default async function handler(req: any, res: any) {
       );
       return res.json({
         visitors: savedVisitors,
+        recentEvents: savedVisitors,
         error: `PostHog API Error: ${errorDetail}. Loaded cached history.`,
       });
     }
@@ -145,6 +147,21 @@ export default async function handler(req: any, res: any) {
     const data = await response.json();
     const results = data.results || [];
     let hasNewData = false;
+
+    const recentEvents = results
+      .map((event: any) => {
+        const props = event.properties || {};
+        return {
+          ip: props["$ip"] || props["ip"],
+          city: props["$geoip_city_name"] || "Unknown City",
+          country: props["$geoip_country_name"] || "Unknown Country",
+          os: props["$os"] || "Unknown OS",
+          browser: props["$browser"] || "Unknown Browser",
+          url: props["$current_url"] || props["url"] || "Unknown URL",
+          lastSeen: event.timestamp || new Date().toISOString(),
+        };
+      })
+      .filter((e: any) => e.ip && e.ip !== "127.0.0.1" && e.ip !== "::1");
 
     for (const event of results) {
       const props = event.properties || {};
@@ -165,6 +182,7 @@ export default async function handler(req: any, res: any) {
             os: props["$os"] || existing?.os || "Unknown OS",
             browser:
               props["$browser"] || existing?.browser || "Unknown Browser",
+            url: props["$current_url"] || props["url"] || existing?.url || "Unknown URL",
             lastSeen: timestamp,
           };
 
@@ -194,7 +212,7 @@ export default async function handler(req: any, res: any) {
         new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime(),
     );
 
-    res.json({ visitors });
+    res.json({ visitors, recentEvents });
   } catch (error) {
     const savedVisitors = Object.values(history).sort(
       (a: any, b: any) =>
@@ -202,6 +220,7 @@ export default async function handler(req: any, res: any) {
     );
     res.json({
       visitors: savedVisitors,
+      recentEvents: savedVisitors,
       error:
         "Internal server error connecting to PostHog. Loaded cached history.",
     });

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Activity, ShieldCheck, AlertCircle, Globe, Monitor, Clock, RefreshCw, Copy, Check } from 'lucide-react';
+import { Activity, ShieldCheck, AlertCircle, Globe, Clock, RefreshCw, Copy, Check, Link } from 'lucide-react';
 
 interface Visitor {
   ip: string;
@@ -9,10 +9,13 @@ interface Visitor {
   device: string;
   city: string;
   country: string;
+  url: string;
 }
 
 export default function App() {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [recentEvents, setRecentEvents] = useState<Visitor[]>([]);
+  const [activeTab, setActiveTab] = useState<'recent' | 'summary'>('recent');
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +35,7 @@ export default function App() {
       }
       
       setVisitors(data.visitors || []);
+      setRecentEvents(data.recentEvents || []);
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
@@ -73,7 +77,7 @@ export default function App() {
         <span className="font-medium">Copied {copiedIp} to clipboard!</span>
       </div>
 
-      <div className="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+      <div className="max-w-6xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
         <div className="bg-blue-600 p-8 text-white">
           <div className="flex items-center gap-4 mb-2">
             <div className="bg-blue-500 p-3 rounded-xl">
@@ -87,9 +91,41 @@ export default function App() {
         </div>
         
         <div className="p-8">
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200 mb-6">
+            <button
+              onClick={() => setActiveTab('recent')}
+              className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'recent'
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Recent Web Visitors
+              {activeTab === 'recent' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-md" />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('summary')}
+              className={`px-4 py-3 font-medium text-sm transition-colors relative ${
+                activeTab === 'summary'
+                  ? 'text-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              IP Summary
+              {activeTab === 'summary' && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-md" />
+              )}
+            </button>
+          </div>
+
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">Recent Web Visitors</h2>
+              <h2 className="text-lg font-semibold text-gray-800">
+                {activeTab === 'recent' ? 'Recent Web Visitors' : 'IP Summary'}
+              </h2>
               {lastUpdated && (
                 <p className="text-xs text-gray-500 mt-1">
                   Last updated: {lastUpdated.toLocaleTimeString()}
@@ -140,10 +176,10 @@ export default function App() {
                 </p>
               </div>
             </div>
-          ) : visitors.length === 0 ? (
+          ) : (activeTab === 'recent' ? recentEvents : visitors).length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-100 border-dashed">
               <Globe className="w-12 h-12 mx-auto text-gray-300 mb-3" />
-              <h3 className="text-gray-500 font-medium">No recent visitors found</h3>
+              <h3 className="text-gray-500 font-medium">No records found</h3>
               <p className="text-gray-400 text-sm mt-1">Make sure you have pageview events with IP tracking enabled in PostHog.</p>
             </div>
           ) : (
@@ -152,37 +188,47 @@ export default function App() {
                 <thead>
                   <tr className="border-b border-gray-200 text-gray-500">
                     <th className="pb-3 font-medium px-4">IP Address</th>
+                    <th className="pb-3 font-medium px-4">Web Address</th>
                     <th className="pb-3 font-medium px-4">Location</th>
-                    <th className="pb-3 font-medium px-4">System / Browser</th>
                     <th className="pb-3 font-medium px-4">Last Seen</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {visitors.map((visitor, idx) => (
+                  {(activeTab === 'recent' ? recentEvents : visitors).map((visitor, idx) => (
                     <tr key={idx} className="hover:bg-gray-50 transition-colors">
                       <td className="py-4 px-4">
                         <button
                           onClick={() => copyToClipboard(visitor.ip)}
-                          className="group flex items-center gap-2 font-mono text-gray-700 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 px-2.5 py-1.5 rounded transition-colors"
-                          title="Click to copy IP"
+                          className="group flex items-center gap-2 font-mono text-gray-700 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 px-2.5 py-1.5 rounded transition-colors max-w-full"
+                          title={`Click to copy: ${visitor.ip}`}
                         >
-                          {visitor.ip}
-                          <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                          <span className="truncate max-w-[100px] sm:max-w-[140px]">{visitor.ip}</span>
+                          <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
                         </button>
-                      </td>
-                      <td className="py-4 px-4 text-gray-600 flex items-center">
-                        <Globe className="w-4 h-4 mr-2 text-gray-400" />
-                        {visitor.city}, {visitor.country}
                       </td>
                       <td className="py-4 px-4 text-gray-600">
                         <div className="flex items-center">
-                          <Monitor className="w-4 h-4 mr-2 text-gray-400" />
-                          {visitor.os} • {visitor.browser}
+                          <Link className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <span className="truncate max-w-[120px] sm:max-w-[180px]" title={visitor.url || 'Unknown URL'}>
+                            {(visitor.url || 'Unknown URL').replace(/^https?:\/\//, '')}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-4 px-4 text-gray-500 flex items-center">
-                        <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                        {new Date(visitor.lastSeen).toLocaleString()}
+                      <td className="py-4 px-4 text-gray-600 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Globe className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          <span className="truncate max-w-[120px]" title={`${visitor.city}, ${visitor.country}`}>
+                            {visitor.city}, {visitor.country}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-4 text-gray-500 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" />
+                          {new Date(visitor.lastSeen).toLocaleString(undefined, { 
+                            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </div>
                       </td>
                     </tr>
                   ))}
